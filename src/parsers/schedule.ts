@@ -4,6 +4,8 @@ import { SemesterParser } from "./semesters";
 import { SiteParser } from "./site";
 import { WeeksParser } from "./weeks";
 import { FIVE_SECONDS, HOUR, SCHEDULE_URL, Schedule } from "../utils";
+import nodeHtmlToImage from "node-html-to-image";
+import fs from 'fs';
 
 export class ScheduleParser {
   private schedules: Schedule[] = [];
@@ -23,8 +25,30 @@ export class ScheduleParser {
       const semester = this.semestersParser.semester?.value;
       const currentWeek = this.weeksParser.getCurrentWeek()?.value;
       if (semester && currentWeek) this.groupsParser.getSubgroups(semester, currentWeek);
-
+      // console.log(Object.entries(this.schedules)[0]);
+      // приведём объект в человесесткий вид
+      const groupedByGroup = this.schedules.reduce((acc, para) => {
+        const key = para.subgroup_id;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(para);
+        return acc;
+      }, {} as Record<string, Schedule[]>);
       this.getSchedules();
+      if (Object.values(groupedByGroup)[0] === undefined) return;
+      
+      
+      const htmlContent = fs.readFileSync("./index.html", 'utf8');
+      Object.values(groupedByGroup).forEach((e,i) => {
+        nodeHtmlToImage({
+          output:'./img' + "week" + i + '.png' ,
+          html: htmlContent,
+          content: {sh: e},
+        }).then(() => console.log('The image was created successfully!'));
+      });
+
+      console.log(Object.keys(groupedByGroup));
     }, HOUR);
   }
 

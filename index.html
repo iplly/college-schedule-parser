@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <table>
+      <thead>
+      <tr>
+          <th>Дата</th>
+          <th>Время</th>
+          <th>Наименование дисциплины</th>
+          <th>Вид занятия</th>
+          <th>ФИО преподавателя</th>
+          <th>Ауд.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each sh as |item| }}    
+          <tr>
+            <td>{{weekday_shortname}} {{date_end_text}}</td>
+            <td>{{daytime_name}}</td>
+            <td>{{discipline_name}}</td>
+            <td>{{classtype_short}}</td>
+            <td>{{teacher_fio}}</td>
+            <td>{{cabinet_fullnumber_wotype}}</td>
+          </tr>
+
+          {{/each}}
+
+      </tbody>
+    </table>
+
+    <style>
+    
+/* Стили для таблицы */
+table {
+  width:  100%; /* Ширина таблицы */
+  border-collapse: collapse; /* Слияние границ ячеек */
+  margin:  1em  0; /* Отступы сверху и снизу */
+}
+
+/* Стили для заголовков таблицы */
+th {
+  background-color: #f2f2f2; /* Фоновый цвет */
+  color: #333; /* Цвет текста */
+  font-weight: bold; /* Жирный шрифт */
+  padding:  0.5em; /* Отступы вокруг текста */
+  text-align: left; /* Выравнивание текста */
+}
+
+/* Стили для ячеек таблицы */
+td {
+  border:  1px solid #ddd; /* Граница ячейки */
+  padding:  0.5em; /* Отступы вокруг текста */
+  text-align: left; /* Выравнивание текста */
+}
+
+/* Стили для четных строк таблицы */
+tr:nth-child(even) {
+  background-color: #f9f9f9; /* Фоновый цвет для четных строк */
+}
+
+/* Стили для нечетных строк таблицы */
+tr:nth-child(odd) {
+  background-color: #ffffff; /* Фоновый цвет для нечетных строк */
+}
+
+/* Стили для первой строки таблицы (заголовки) */
+thead tr {
+  background-color: #4CAF50; /* Фоновый цвет */
+  color: white; /* Цвет текста */
+}
+    </style>
+
+  </body>
+</html>

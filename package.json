@@ -1,7 +1,6 @@
 {
   "name": "schedule-parser",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node dist/index.js",
@@ -23,7 +22,10 @@
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
     "grammy": "^1.20.4",
+    "handlebars": "^4.7.8",
     "jsdom": "^24.0.0",
-    "mongoose": "^8.1.1"
-  }
+    "mongoose": "^8.1.1",
+    "node-html-to-image": "^4.0.0"
+  },
+  "description": ""
 }

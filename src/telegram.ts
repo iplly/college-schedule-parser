@@ -165,7 +165,7 @@ export class Telegram {
       // Получить расписание на неделю
       if (ctx.message.text === GET_WEEK) {
         const schedules = this.scheduleParser.findByGroup(student.groupId, student.subgroup);
-        const htmlContent = fs.readFileSync("./index.html", 'utf8');
+        // const htmlContent = fs.readFileSync("./index.html", 'utf8');
         // Тут сам правь
         /*
         await nodeHtmlToImage({
