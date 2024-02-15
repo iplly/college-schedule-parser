@@ -54,15 +54,26 @@ export class ScheduleParser {
     this.schedules = schedules;
   }
 
-  findToday(groupId: string, subgroup: string): Record<string, Schedule[]> | null {
+  private formatDateToKey(date: Date): string {
+    const day = `${date.getDate()}`.padStart(2, "0");
+    const month = `${(1 + date.getMonth())}`.padStart(2, "0");
+    const year = `${date.getFullYear()}`;
+
+    const key = `${day}.${month}.${year}`;
+
+    return key;
+  }
+
+  findByDate(groupId: string, subgroup: string, isTommorow = false): Record<string, Schedule[]> | null {
     const today = new Date(Date.now());
-    const day = `${today.getDate()}`.padStart(2, "0");
-    const month = `${(1 + today.getMonth())}`.padStart(2, "0");
-    const year = `${today.getFullYear()}`;
+
+    if (isTommorow) {
+      today.setDate(today.getDate() + 1);
+    }
 
     const schedules = this.findByGroup(groupId, subgroup);
 
-    const todayKey = `${day}.${month}.${year}`;
+    const todayKey = this.formatDateToKey(today);
     const schedulesToday: Record<string, Schedule[]> = {};
     if (!schedules[todayKey]) return null;
 

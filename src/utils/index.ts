@@ -1,6 +1,5 @@
 export * from "./events";
 export * from "./consts";
-export * from "./buildScheduleMessage";
 export * from "./types/option";
 export * from "./types/weekdate";
 export * from "./types/schedule";

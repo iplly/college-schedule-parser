@@ -1,8 +1,8 @@
 import { Menu } from "@grammyjs/menu";
-import { Bot, InlineKeyboard, InputFile, Keyboard, session } from "grammy";
+import { Bot, Context, InlineKeyboard, Keyboard, session } from "grammy";
 import { StudentModel } from "./models/student";
 import { ScheduleParser } from "./parsers";
-import { BotContext, GET_TODAY, GET_WEEK, SELECT_SUBGROUP, SETTINGS, SessionData, buildScheduleMessage } from "./utils";
+import { BotContext, GET_TODAY, GET_TOMORROW, GET_WEEK, OLD_TODAY, SELECT_SUBGROUP, SETTINGS, Schedule, SessionData } from "./utils";
 import nodeHtmlToImage from 'node-html-to-image'
 import fs from 'fs';
 
@@ -31,7 +31,8 @@ export class Telegram {
   private buildKeyboard() {
     const keyboard = new Keyboard();
     keyboard.text(GET_WEEK).row();
-    keyboard.text(GET_TODAY).row();
+    keyboard.text(GET_TODAY);
+    keyboard.text(GET_TOMORROW).row();
     keyboard.text(SETTINGS).row();
     keyboard.resized();
     return keyboard;
@@ -97,7 +98,7 @@ export class Telegram {
   private bindEvents() {
     this.bot.catch((err) => {
       console.log(err);
-      err.ctx.reply("Произошла ошибка! Попробуйте позже или сообщите разработчику!");
+      err.ctx.reply("Произошла ошибка! Попробуйте позже или сообщите разработчику @kostrominoff!");
     });
 
     this.bot.command("start", async (ctx) => {
@@ -153,63 +154,95 @@ export class Telegram {
         await ctx.reply(`Подгруппа ${subgroup} сохранена!`);
       }
 
+      // Проверка на валидность студента
+      if (!student || !student.groupId || !student.subgroup) return await ctx.reply("Начните с команды /start");
+
+      // Открыть настройки
+      if (ctx.message.text === SETTINGS) {
+        return await ctx.reply("В случае ошибки обратитесь к @kostrominoff\nНастройки:", { reply_markup: this.settings });
+      }
+
       // Получить расписание на неделю
-      else if (ctx.message.text === GET_WEEK) {
-        if (!student || !student.groupId || !student.subgroup) return await ctx.answerCallbackQuery("Начните с команды /start");
-
+      if (ctx.message.text === GET_WEEK) {
         const schedules = this.scheduleParser.findByGroup(student.groupId, student.subgroup);
-        if (!schedules) return await ctx.reply("Расписание не найдено!");
-        // здесь отправляется рассписание
-        const messages = buildScheduleMessage(schedules);
-        if (!messages) return await ctx.reply("Расписание не найдено!");
-
-        for await (const message of messages) {
-          if (!message) {
-            await ctx.reply("Расписание не найдено!");
-            continue;
-        }
-
         const htmlContent = fs.readFileSync("./index.html", 'utf8');
-
+        // Тут сам правь
+        /*
         await nodeHtmlToImage({
           output:'./image' + student.groupId + '.png' ,
           html: htmlContent,
           content: {sh: Object.values(schedules)},
         })
-          await ctx.reply(message, { parse_mode: "HTML" });
-          await ctx.replyWithDocument(new InputFile("./image" + student.groupId + ".png") )
-        }
+        await ctx.replyWithDocument(new InputFile("./image" + student.groupId + ".png"))
+        */
+
+        // Это отправка сообщений
+        await this.sendScheduleMessages(ctx, schedules);
 
         return;
       }
 
-      // Открыть настройки
-      else if (ctx.message.text === SETTINGS) {
-        return await ctx.reply("Настройки", { reply_markup: this.settings });
+      if (ctx.message.text === OLD_TODAY) {
+        await ctx.reply("Теперь используйте новую кнопку! В случае ошибки обратитесь к @kostrominoff", { reply_markup: this.keyboard });
+        return;
       }
 
       // Получить расписание на сегодня
-      else if (ctx.message.text === GET_TODAY) {
-        if (!student || !student.groupId || !student.subgroup) return await ctx.answerCallbackQuery("Начните с команды /start");
+      if (ctx.message.text === GET_TODAY) {
 
-        const schedules = this.scheduleParser.findToday(student.groupId, student.subgroup);
-        if (!schedules) return await ctx.reply("Расписание не найдено!");
+        const schedules = this.scheduleParser.findByDate(student.groupId, student.subgroup);
+        await this.sendScheduleMessages(ctx, schedules);
 
-        const messages = buildScheduleMessage(schedules);
-        if (!messages) return await ctx.reply("Расписание не найдено!");
+        return;
+      }
 
-        for await (const message of messages) {
-          if (!message) {
-            await ctx.reply("Расписание не найдено!");
-            continue;
-          }
-
-          await ctx.reply(message, { parse_mode: "HTML" });
-        }
+      // Получить расписание на завтра
+      if (ctx.message.text === GET_TOMORROW) {
+        const schedules = this.scheduleParser.findByDate(student.groupId, student.subgroup, true);
+        await this.sendScheduleMessages(ctx, schedules);
 
         return;
       }
     });
+  }
+
+  private async sendScheduleMessages(ctx: Context, schedules: Record<string, Schedule[]> | null) {
+    if (!schedules) return await ctx.reply("Расписание не найдено!", { reply_markup: this.keyboard });
+
+    const messages = this.buildScheduleMessage(schedules);
+    if (!messages) return await ctx.reply("Расписание не найдено!", { reply_markup: this.keyboard });
+
+    for await (const message of messages) {
+      if (!message) {
+        await ctx.reply("Расписание не найдено!", { reply_markup: this.keyboard });
+        continue;
+      }
+
+      await ctx.reply(message, { parse_mode: "HTML", reply_markup: this.keyboard });
+    }
+  }
+
+  private buildScheduleMessage(schedules: Record<string, Schedule[]>): string[] {
+    const messages = Object.entries(schedules).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime()).map(([date, schedules]) => {
+      const dayWeek = Intl.DateTimeFormat("ru-RU", { weekday: "long" }).format(new Date(date.split(".").reverse().join("-")));
+      if (!schedules) return "";
+
+      const todaySchedules = schedules.sort((a, b) => a.daytime_start.localeCompare(b.daytime_start)).map((schedule, index) => {
+        return `<b>${index + 1})</b> ${schedule.discipline_name} (${schedule.classtype_name})\nПреподаватель: ${schedule.teacher_fio}\nВремя: ${schedule.daytime_name}\nКабинет: ${schedule.cabinet_fullnumber_wotype}`;
+      }).join("\n\n");
+
+      const message = `📆 <b>${dayWeek.toUpperCase()} (${date})</b>\n${todaySchedules}`;
+      return message;
+    });
+
+    const message = messages.join("\n\n\n");
+
+    if (message.length > 4096) {
+      const midpoint = Math.ceil(messages.length / 2);
+      const splittedMessages = [messages.slice(0, midpoint).join("\n\n"), messages.slice(midpoint).join("\n\n")];
+      return splittedMessages;
+    }
+    return [message];
   }
 
 }
