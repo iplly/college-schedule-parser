@@ -3,6 +3,8 @@ import { Bot, Context, InlineKeyboard, Keyboard, session } from "grammy";
 import { StudentModel } from "./models/student";
 import { ScheduleParser } from "./parsers";
 import { BotContext, GET_TODAY, GET_TOMORROW, GET_WEEK, OLD_TODAY, SELECT_SUBGROUP, SETTINGS, Schedule, SessionData } from "./utils";
+import nodeHtmlToImage from 'node-html-to-image'
+import fs from 'fs';
 
 export class Telegram {
   private bot: Bot<BotContext>;
@@ -163,6 +165,18 @@ export class Telegram {
       // Получить расписание на неделю
       if (ctx.message.text === GET_WEEK) {
         const schedules = this.scheduleParser.findByGroup(student.groupId, student.subgroup);
+        const htmlContent = fs.readFileSync("./index.html", 'utf8');
+        // Тут сам правь
+        /*
+        await nodeHtmlToImage({
+          output:'./image' + student.groupId + '.png' ,
+          html: htmlContent,
+          content: {sh: Object.values(schedules)},
+        })
+        await ctx.replyWithDocument(new InputFile("./image" + student.groupId + ".png"))
+        */
+
+        // Это отправка сообщений
         await this.sendScheduleMessages(ctx, schedules);
 
         return;
@@ -230,4 +244,5 @@ export class Telegram {
     }
     return [message];
   }
+
 }
